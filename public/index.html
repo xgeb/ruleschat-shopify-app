@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RulesChat Widget Prototype</title>
+    <link rel="stylesheet" href="./widget.css" />
+  </head>
+  <body>
+    <main class="page">
+      <section class="widget" aria-labelledby="ruleschat-title">
+        <header class="widget__header">
+          <div>
+            <p class="widget__eyebrow" data-widget-eyebrow>League Rules</p>
+            <h1 id="ruleschat-title" class="widget__title" data-widget-title>
+              RulesChat
+            </h1>
+            <p class="widget__notice" data-widget-notice>
+              Answers are based only on the posted rule documents.
+            </p>
+          </div>
+        </header>
+
+        <section class="admin" aria-labelledby="admin-title">
+          <div class="admin__header">
+            <h2 id="admin-title">Admin settings (prototype)</h2>
+            <p class="admin__subtitle">
+              Update the text and document links below to match your league.
+              These changes only apply in this browser session.
+            </p>
+          </div>
+          <form class="admin__form" aria-label="Widget admin settings">
+            <label class="admin__label" for="admin-title-input">Widget title</label>
+            <input
+              id="admin-title-input"
+              name="widgetTitle"
+              type="text"
+              value="RulesChat"
+            />
+
+            <label class="admin__label" for="admin-eyebrow-input"
+              >Eyebrow text</label
+            >
+            <input
+              id="admin-eyebrow-input"
+              name="widgetEyebrow"
+              type="text"
+              value="League Rules"
+            />
+
+            <label class="admin__label" for="admin-notice-input"
+              >Notice text</label
+            >
+            <input
+              id="admin-notice-input"
+              name="widgetNotice"
+              type="text"
+              value="Answers are based only on the posted rule documents."
+            />
+
+            <div class="admin__divider" role="presentation"></div>
+            <p class="admin__section-title">Documents (up to 8)</p>
+            <p class="admin__note">
+              Uploading PDFs will be handled by the backend in a future milestone.
+              For now, paste a hosted PDF link for each document.
+            </p>
+            <div class="admin__documents" data-admin-documents></div>
+          </form>
+        </section>
+
+        <section class="documents" aria-labelledby="documents-title">
+          <div class="documents__header">
+            <h2 id="documents-title">Documents</h2>
+            <p class="documents__subtitle">Tap a document to download the PDF.</p>
+          </div>
+          <ul class="documents__list" data-documents-list></ul>
+        </section>
+
+        <section class="chat" aria-labelledby="chat-title">
+          <div class="chat__header">
+            <h2 id="chat-title">Ask about the rules</h2>
+            <p class="chat__subtitle">
+              Ask a question about equipment, materials, or engagement rules.
+            </p>
+          </div>
+
+          <div class="chat__messages" role="log" aria-live="polite">
+            <article class="message message--assistant">
+              <p class="message__label">RulesChat</p>
+              <p>
+                Hello! Ask a rules question to get answers grounded in the posted
+                documents.
+              </p>
+            </article>
+          </div>
+
+          <form class="chat__composer" aria-label="Send a rules question">
+            <label class="chat__label" for="chat-input">Your question</label>
+            <div class="chat__controls">
+              <input
+                id="chat-input"
+                name="question"
+                type="text"
+                maxlength="250"
+                placeholder="Type your question (250 characters max)"
+                required
+              />
+              <button type="submit">Send</button>
+            </div>
+            <p class="chat__hint">
+              This prototype does not answer yet. Responses will appear here in
+              Milestone 2.
+            </p>
+          </form>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="./widget.js"></script>
+  </body>
+</html>
