@@ -1,7 +1,4 @@
-import {
-  chunkText,
-  retrieveRelevantChunks,
-} from './widget-utils.js';
+import { chunkText, retrieveRelevantChunks } from './widget-utils.js';
 
 const config = {
   widgetTitle: 'RulesChat',
@@ -32,7 +29,6 @@ const ensurePdfLib = () => {
   if (!window.pdfjsLib) {
     throw new Error('PDF library not available.');
   }
-
   return window.pdfjsLib;
 };
 
@@ -89,8 +85,7 @@ const addEscalationMessage = () => {
   messageLabel.textContent = 'RulesChat';
 
   const messageBody = document.createElement('p');
-  messageBody.textContent =
-    'I cannot find this in the posted documents.';
+  messageBody.textContent = 'I cannot find this in the posted documents.';
 
   const actionButton = document.createElement('button');
   actionButton.type = 'button';
@@ -107,6 +102,10 @@ const addEscalationMessage = () => {
 };
 
 const renderDocuments = () => {
+  if (!documentsList) {
+    return;
+  }
+
   documentsList.innerHTML = '';
 
   config.documents.forEach((doc, index) => {
@@ -118,7 +117,10 @@ const renderDocuments = () => {
     link.href = doc.url || '#';
     link.target = '_blank';
     link.rel = 'noreferrer';
-    link.setAttribute('aria-label', `Open ${doc.title} document`);
+    link.setAttribute(
+      'aria-label',
+      `Open ${doc.title || `Document ${index + 1}`} document`
+    );
 
     const icon = document.createElement('span');
     icon.className = 'documents__icon';
@@ -135,6 +137,10 @@ const renderDocuments = () => {
 };
 
 const renderAdminDocuments = () => {
+  if (!adminDocuments) {
+    return;
+  }
+
   adminDocuments.innerHTML = '';
 
   config.documents.forEach((doc, index) => {
@@ -175,6 +181,7 @@ const renderAdminDocuments = () => {
     });
     urlField.append(urlLabel, urlInput);
 
+    // Admin-only upload (browser session prototype)
     const fileField = document.createElement('div');
     fileField.className = 'admin__document-field';
     const fileLabel = document.createElement('label');
@@ -182,28 +189,35 @@ const renderAdminDocuments = () => {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'application/pdf';
+
     const fileStatus = document.createElement('p');
     fileStatus.className = 'admin__file-status';
     fileStatus.textContent = doc.file
       ? `Uploaded: ${doc.file.name}`
       : 'No file uploaded yet.';
+
     fileInput.addEventListener('change', async (event) => {
       const [file] = event.target.files ?? [];
       if (!file) {
         return;
       }
+
       doc.file = file;
       fileStatus.textContent = `Processing: ${file.name}`;
+
       try {
         const pages = await extractPdfText(file);
         doc.chunks = buildChunks(pages, doc.title);
         fileStatus.textContent = `Uploaded: ${file.name} (${doc.chunks.length} chunks)`;
       } catch (error) {
         console.error(error);
+        doc.file = null;
+        doc.chunks = [];
         fileStatus.textContent =
           'Unable to process PDF. Please try another file.';
       }
     });
+
     fileField.append(fileLabel, fileInput, fileStatus);
 
     fields.append(nameField, urlField, fileField);
@@ -217,29 +231,37 @@ const syncHeaderInputs = () => {
   const eyebrowInput = document.querySelector('#admin-eyebrow-input');
   const noticeInput = document.querySelector('#admin-notice-input');
 
-  titleInput.addEventListener('input', (event) => {
-    config.widgetTitle = event.target.value;
-    titleNode.textContent = config.widgetTitle;
-  });
+  if (titleInput) {
+    titleInput.addEventListener('input', (event) => {
+      config.widgetTitle = event.target.value;
+      if (titleNode) {
+        titleNode.textContent = config.widgetTitle;
+      }
+    });
+  }
 
-  eyebrowInput.addEventListener('input', (event) => {
-    config.widgetEyebrow = event.target.value;
-    eyebrowNode.textContent = config.widgetEyebrow;
-  });
+  if (eyebrowInput) {
+    eyebrowInput.addEventListener('input', (event) => {
+      config.widgetEyebrow = event.target.value;
+      if (eyebrowNode) {
+        eyebrowNode.textContent = config.widgetEyebrow;
+      }
+    });
+  }
 
-  noticeInput.addEventListener('input', (event) => {
-    config.widgetNotice = event.target.value;
-    noticeNode.textContent = config.widgetNotice;
-  });
+  if (noticeInput) {
+    noticeInput.addEventListener('input', (event) => {
+      config.widgetNotice = event.target.value;
+      if (noticeNode) {
+        noticeNode.textContent = config.widgetNotice;
+      }
+    });
+  }
 };
-
-syncHeaderInputs();
-renderDocuments();
-renderAdminDocuments();
 
 const findAnswer = (question) => {
   const allChunks = config.documents.flatMap((doc) =>
-    doc.chunks.map((chunk) => ({
+    (doc.chunks ?? []).map((chunk) => ({
       ...chunk,
       documentTitle: doc.title,
     }))
@@ -258,27 +280,34 @@ const findAnswer = (question) => {
   };
 };
 
-form.addEventListener('submit', (event) => {
-  event.preventDefault();
-  const value = input.value.trim();
+syncHeaderInputs();
+renderDocuments();
+renderAdminDocuments();
 
-  if (!value) {
-    return;
-  }
+if (form) {
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const value = input?.value?.trim() ?? '';
 
-  addMessage(value, 'You');
-  const answer = findAnswer(value);
+    if (!value) {
+      return;
+    }
 
-  if (!answer) {
-    addEscalationMessage();
+    addMessage(value, 'You');
+
+    const answer = findAnswer(value);
+
+    if (!answer) {
+      addEscalationMessage();
+      form.reset();
+      return;
+    }
+
+    addMessage(
+      `From ${answer.documentTitle} (page ${answer.pageNumber}): “${answer.quote}”`,
+      'RulesChat'
+    );
+
     form.reset();
-    return;
-  }
-
-  addMessage(
-    `From ${answer.documentTitle} (page ${answer.pageNumber}): “${answer.quote}”`,
-    'RulesChat'
-  );
-
-  form.reset();
-});
+  });
+}
