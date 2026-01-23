@@ -2,6 +2,8 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import assert from 'assert';
+import { chunkText, retrieveRelevantChunks } from '../public/widget-utils.js';
+
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
@@ -49,7 +51,39 @@ const run = async () => {
     'Expected notice about document-only answers.'
   );
 
-  console.log('All milestone 1 tests passed.');
+  const chunked = chunkText('one two three four five six seven eight nine ten', {
+    maxWords: 4,
+  });
+  assert.deepEqual(
+    chunked,
+    ['one two three four', 'five six seven eight', 'nine ten'],
+    'Expected chunking to split text into word-limited segments.'
+  );
+
+  const mockChunks = [
+    {
+      documentTitle: 'Doc A',
+      pageNumber: 1,
+      chunkIndex: 0,
+      content: 'Weapons must be padded and inspected before combat.',
+    },
+    {
+      documentTitle: 'Doc B',
+      pageNumber: 2,
+      chunkIndex: 0,
+      content: 'Food vendors must comply with venue policies.',
+    },
+  ];
+  const results = retrieveRelevantChunks('weapons inspection rules', mockChunks);
+  assert.equal(results[0].documentTitle, 'Doc A');
+  assert.equal(
+    results.length,
+    1,
+    'Expected retrieval to filter unrelated chunks.'
+  );
+
+  console.log('All milestone 2 tests passed.');
+
 };
 
 run();

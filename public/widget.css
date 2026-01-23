@@ -141,6 +141,12 @@ body {
   gap: 4px;
 }
 
+.admin__file-status {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
 .documents__header {
   display: flex;
   flex-direction: column;
@@ -233,6 +239,11 @@ body {
   margin: 0 0 8px;
   font-weight: 600;
   color: #1e1b4b;
+}
+
+.message__action {
+  align-self: flex-start;
+  margin-top: 8px;
 }
 
 .chat__composer {

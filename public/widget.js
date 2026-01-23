@@ -1,16 +1,18 @@
+import { chunkText, retrieveRelevantChunks } from './widget-utils.js';
+
 const config = {
   widgetTitle: 'RulesChat',
   widgetEyebrow: 'League Rules',
   widgetNotice: 'Answers are based only on the posted rule documents.',
   documents: [
-    { title: 'Core Rulebook', url: '' },
-    { title: 'Safety Manual', url: '' },
-    { title: 'Weapon Specs', url: '' },
-    { title: 'Armor Guide', url: '' },
-    { title: 'Event Policies', url: '' },
-    { title: 'Referee Notes', url: '' },
-    { title: 'Supplement A', url: '' },
-    { title: 'Supplement B', url: '' },
+    { title: 'Core Rulebook', url: '', file: null, chunks: [] },
+    { title: 'Safety Manual', url: '', file: null, chunks: [] },
+    { title: 'Weapon Specs', url: '', file: null, chunks: [] },
+    { title: 'Armor Guide', url: '', file: null, chunks: [] },
+    { title: 'Event Policies', url: '', file: null, chunks: [] },
+    { title: 'Referee Notes', url: '', file: null, chunks: [] },
+    { title: 'Supplement A', url: '', file: null, chunks: [] },
+    { title: 'Supplement B', url: '', file: null, chunks: [] },
   ],
 };
 
@@ -22,6 +24,41 @@ const adminDocuments = document.querySelector('[data-admin-documents]');
 const titleNode = document.querySelector('[data-widget-title]');
 const eyebrowNode = document.querySelector('[data-widget-eyebrow]');
 const noticeNode = document.querySelector('[data-widget-notice]');
+
+const ensurePdfLib = () => {
+  if (!window.pdfjsLib) {
+    throw new Error('PDF library not available.');
+  }
+  return window.pdfjsLib;
+};
+
+const extractPdfText = async (file) => {
+  const pdfjsLib = ensurePdfLib();
+  const data = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data }).promise;
+  const pages = [];
+
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber);
+    const content = await page.getTextContent();
+    const pageText = content.items.map((item) => item.str).join(' ');
+    pages.push({ pageNumber, text: pageText });
+  }
+
+  return pages;
+};
+
+const buildChunks = (pages, documentTitle) => {
+  return pages.flatMap((page) => {
+    const chunks = chunkText(page.text);
+    return chunks.map((chunk, index) => ({
+      documentTitle,
+      pageNumber: page.pageNumber,
+      chunkIndex: index,
+      content: chunk,
+    }));
+  });
+};
 
 const addMessage = (content, label) => {
   const message = document.createElement('article');
@@ -39,7 +76,36 @@ const addMessage = (content, label) => {
   messages.scrollTop = messages.scrollHeight;
 };
 
+const addEscalationMessage = () => {
+  const message = document.createElement('article');
+  message.className = 'message';
+
+  const messageLabel = document.createElement('p');
+  messageLabel.className = 'message__label';
+  messageLabel.textContent = 'RulesChat';
+
+  const messageBody = document.createElement('p');
+  messageBody.textContent = 'I cannot find this in the posted documents.';
+
+  const actionButton = document.createElement('button');
+  actionButton.type = 'button';
+  actionButton.className = 'message__action';
+  actionButton.textContent = 'Send this question to the league';
+  actionButton.addEventListener('click', () => {
+    actionButton.disabled = true;
+    actionButton.textContent = 'Sending is not enabled yet.';
+  });
+
+  message.append(messageLabel, messageBody, actionButton);
+  messages.append(message);
+  messages.scrollTop = messages.scrollHeight;
+};
+
 const renderDocuments = () => {
+  if (!documentsList) {
+    return;
+  }
+
   documentsList.innerHTML = '';
 
   config.documents.forEach((doc, index) => {
@@ -51,7 +117,10 @@ const renderDocuments = () => {
     link.href = doc.url || '#';
     link.target = '_blank';
     link.rel = 'noreferrer';
-    link.setAttribute('aria-label', `Open ${doc.title} document`);
+    link.setAttribute(
+      'aria-label',
+      `Open ${doc.title || `Document ${index + 1}`} document`
+    );
 
     const icon = document.createElement('span');
     icon.className = 'documents__icon';
@@ -68,6 +137,10 @@ const renderDocuments = () => {
 };
 
 const renderAdminDocuments = () => {
+  if (!adminDocuments) {
+    return;
+  }
+
   adminDocuments.innerHTML = '';
 
   config.documents.forEach((doc, index) => {
@@ -108,7 +181,46 @@ const renderAdminDocuments = () => {
     });
     urlField.append(urlLabel, urlInput);
 
-    fields.append(nameField, urlField);
+    // Admin-only upload (browser session prototype)
+    const fileField = document.createElement('div');
+    fileField.className = 'admin__document-field';
+    const fileLabel = document.createElement('label');
+    fileLabel.textContent = 'Upload PDF';
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'application/pdf';
+
+    const fileStatus = document.createElement('p');
+    fileStatus.className = 'admin__file-status';
+    fileStatus.textContent = doc.file
+      ? `Uploaded: ${doc.file.name}`
+      : 'No file uploaded yet.';
+
+    fileInput.addEventListener('change', async (event) => {
+      const [file] = event.target.files ?? [];
+      if (!file) {
+        return;
+      }
+
+      doc.file = file;
+      fileStatus.textContent = `Processing: ${file.name}`;
+
+      try {
+        const pages = await extractPdfText(file);
+        doc.chunks = buildChunks(pages, doc.title);
+        fileStatus.textContent = `Uploaded: ${file.name} (${doc.chunks.length} chunks)`;
+      } catch (error) {
+        console.error(error);
+        doc.file = null;
+        doc.chunks = [];
+        fileStatus.textContent =
+          'Unable to process PDF. Please try another file.';
+      }
+    });
+
+    fileField.append(fileLabel, fileInput, fileStatus);
+
+    fields.append(nameField, urlField, fileField);
     wrapper.append(title, fields);
     adminDocuments.append(wrapper);
   });
@@ -119,39 +231,83 @@ const syncHeaderInputs = () => {
   const eyebrowInput = document.querySelector('#admin-eyebrow-input');
   const noticeInput = document.querySelector('#admin-notice-input');
 
-  titleInput.addEventListener('input', (event) => {
-    config.widgetTitle = event.target.value;
-    titleNode.textContent = config.widgetTitle;
-  });
+  if (titleInput) {
+    titleInput.addEventListener('input', (event) => {
+      config.widgetTitle = event.target.value;
+      if (titleNode) {
+        titleNode.textContent = config.widgetTitle;
+      }
+    });
+  }
 
-  eyebrowInput.addEventListener('input', (event) => {
-    config.widgetEyebrow = event.target.value;
-    eyebrowNode.textContent = config.widgetEyebrow;
-  });
+  if (eyebrowInput) {
+    eyebrowInput.addEventListener('input', (event) => {
+      config.widgetEyebrow = event.target.value;
+      if (eyebrowNode) {
+        eyebrowNode.textContent = config.widgetEyebrow;
+      }
+    });
+  }
 
-  noticeInput.addEventListener('input', (event) => {
-    config.widgetNotice = event.target.value;
-    noticeNode.textContent = config.widgetNotice;
-  });
+  if (noticeInput) {
+    noticeInput.addEventListener('input', (event) => {
+      config.widgetNotice = event.target.value;
+      if (noticeNode) {
+        noticeNode.textContent = config.widgetNotice;
+      }
+    });
+  }
+};
+
+const findAnswer = (question) => {
+  const allChunks = config.documents.flatMap((doc) =>
+    (doc.chunks ?? []).map((chunk) => ({
+      ...chunk,
+      documentTitle: doc.title,
+    }))
+  );
+
+  const matches = retrieveRelevantChunks(question, allChunks);
+  if (matches.length === 0) {
+    return null;
+  }
+
+  const topMatch = matches[0];
+  return {
+    documentTitle: topMatch.documentTitle,
+    pageNumber: topMatch.pageNumber,
+    quote: topMatch.content,
+  };
 };
 
 syncHeaderInputs();
 renderDocuments();
 renderAdminDocuments();
 
-form.addEventListener('submit', (event) => {
-  event.preventDefault();
-  const value = input.value.trim();
+if (form) {
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const value = input?.value?.trim() ?? '';
 
-  if (!value) {
-    return;
-  }
+    if (!value) {
+      return;
+    }
 
-  addMessage(value, 'You');
-  addMessage(
-    'Thanks! This prototype will provide document-grounded answers in Milestone 2.',
-    'RulesChat'
-  );
+    addMessage(value, 'You');
 
-  form.reset();
-});
+    const answer = findAnswer(value);
+
+    if (!answer) {
+      addEscalationMessage();
+      form.reset();
+      return;
+    }
+
+    addMessage(
+      `From ${answer.documentTitle} (page ${answer.pageNumber}): “${answer.quote}”`,
+      'RulesChat'
+    );
+
+    form.reset();
+  });
+}
