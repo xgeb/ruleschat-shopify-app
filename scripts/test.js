@@ -34,7 +34,9 @@ const run = async () => {
   const documentConfigMatch = widgetScript.match(/documents:\s*\[/);
   assert.ok(documentConfigMatch, 'Expected documents config array.');
 
-  const documentTitles = widgetScript.match(/title: '.*?'/g) ?? [];
+  const documentArrayMatch = widgetScript.match(/documents:\s*\[((?:.|\n)*?)\n\s*\],/);
+  assert.ok(documentArrayMatch, 'Expected documents config array.');
+  const documentTitles = documentArrayMatch[1].match(/title: '.*?'/g) ?? [];
   assert.equal(
     documentTitles.length,
     8,
@@ -49,6 +51,20 @@ const run = async () => {
   assert.ok(
     widgetScript.includes('Answers are based only on the posted rule documents.'),
     'Expected notice about document-only answers.'
+  );
+
+  assert.ok(
+    html.includes('data-save-settings'),
+    'Expected save settings button to be present.'
+  );
+
+  const configStore = await fs.readFile(
+    path.join(projectRoot, 'public', 'config-store.js'),
+    'utf8'
+  );
+  assert.ok(
+    configStore.includes('ruleschat:config:v1'),
+    'Expected localStorage config key to be defined.'
   );
 
   const chunked = chunkText('one two three four five six seven eight nine ten', {

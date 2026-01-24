@@ -29,6 +29,42 @@
               These changes only apply in this browser session.
             </p>
           </div>
+          <section class="admin__plan" aria-label="Plan and limits">
+            <div class="admin__plan-summary">
+              <div>
+                <p class="admin__plan-label">Plan &amp; limits</p>
+                <p class="admin__plan-name" data-plan-name>Starter</p>
+              </div>
+              <div class="admin__plan-metrics">
+                <p>
+                  Document limit:
+                  <strong data-plan-limit>8</strong>
+                </p>
+                <p>
+                  Usage:
+                  <strong data-plan-usage>0</strong>
+                </p>
+              </div>
+            </div>
+            <div class="admin__plan-upsell" data-plan-upsell>
+              <p>
+                You&apos;ve reached the document limit for this plan. Upgrade to
+                add more documents.
+              </p>
+              <div class="admin__plan-actions">
+                <button type="button" data-upgrade-pro>
+                  Upgrade to Pro ($15/mo – 28 docs)
+                </button>
+                <button type="button" data-upgrade-power>
+                  Upgrade to Power ($20/mo – 75 docs)
+                </button>
+              </div>
+            </div>
+          </section>
+          <div class="admin__save">
+            <button type="button" data-save-settings>Save settings</button>
+            <span class="admin__save-status" data-save-status aria-live="polite"></span>
+          </div>
           <form class="admin__form" aria-label="Widget admin settings">
             <label class="admin__label" for="admin-title-input">Widget title</label>
             <input
@@ -58,8 +94,36 @@
               value="Answers are based only on the posted rule documents."
             />
 
+            <label class="admin__label" for="admin-theme-preset"
+              >Theme color</label
+            >
+            <div class="admin__theme-controls">
+              <select id="admin-theme-preset" name="themePreset">
+                <option value="#ef4444">Red</option>
+                <option value="#f97316">Orange</option>
+                <option value="#eab308">Yellow</option>
+                <option value="#84cc16">Green-Yellow</option>
+                <option value="#22c55e">Green</option>
+                <option value="#14b8a6">Green-Blue</option>
+                <option value="#3b82f6" selected>Blue</option>
+                <option value="#6366f1">Purple-Blue</option>
+                <option value="#a855f7">Purple</option>
+                <option value="#ec4899">Red-Purple</option>
+                <option value="#111827">Black</option>
+                <option value="#6b7280">Gray</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input
+                id="admin-theme-input"
+                name="themeColor"
+                type="color"
+                value="#3b82f6"
+                aria-label="Theme color picker"
+              />
+            </div>
+
             <div class="admin__divider" role="presentation"></div>
-            <p class="admin__section-title">Documents (up to 8)</p>
+            <p class="admin__section-title">Documents</p>
             <p class="admin__note">
               Uploading PDFs will be handled by the backend in a future milestone.
               For now, paste a hosted PDF link for each document.
@@ -73,7 +137,7 @@
             <h2 id="documents-title">Documents</h2>
             <p class="documents__subtitle">Tap a document to download the PDF.</p>
           </div>
-          <ul class="documents__list" data-documents-list></ul>
+          <div data-documents-list></div>
         </section>
 
         <section class="chat" aria-labelledby="chat-title">
@@ -107,9 +171,22 @@
               />
               <button type="submit">Send</button>
             </div>
-            <p class="chat__hint">
-              This prototype does not answer yet. Responses will appear here in
-              Milestone 2.
+            <p
+              class="chat__count is-hidden"
+              data-char-count
+              aria-live="polite"
+            >
+              Character limit reached (250 max).
+            </p>
+            <p class="chat__hint" data-model-status role="status" aria-live="polite">
+              Model status: ready to load for local answers.
+            </p>
+            <div class="chat__model-actions">
+              <button type="button" data-model-action>Load model</button>
+              <span class="chat__model-detail" data-model-detail></span>
+            </div>
+            <p class="chat__hint" data-chat-hint>
+              Answers are generated locally in your browser using WebGPU.
             </p>
           </form>
         </section>

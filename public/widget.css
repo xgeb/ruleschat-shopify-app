@@ -5,6 +5,8 @@
   font-weight: 400;
   color: #1f2937;
   background-color: #f8fafc;
+  --theme-primary: #3b82f6;
+  --theme-primary-hover: color-mix(in srgb, var(--theme-primary) 85%, #000);
 }
 
 * {
@@ -37,6 +39,8 @@ body {
   display: flex;
   justify-content: space-between;
   gap: 16px;
+  padding-left: 16px;
+  border-left: 4px solid var(--theme-primary);
 }
 
 .widget__eyebrow {
@@ -70,7 +74,7 @@ body {
   background: #ffffff;
   border-radius: 18px;
   padding: 24px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--theme-primary);
 }
 
 .admin__header {
@@ -78,6 +82,85 @@ body {
   flex-direction: column;
   gap: 8px;
   margin-bottom: 20px;
+}
+
+.admin__plan {
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  background: #f8fafc;
+  margin-bottom: 20px;
+}
+
+.admin__plan-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.admin__plan-label {
+  margin: 0 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.admin__plan-name {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin__plan-metrics {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  color: #475569;
+}
+
+.admin__plan-metrics p {
+  margin: 0;
+}
+
+.admin__plan-upsell {
+  display: none;
+  border-radius: 12px;
+  border: 1px solid var(--theme-primary);
+  padding: 12px;
+  background: #ffffff;
+  color: #1f2937;
+}
+
+.admin__plan-upsell.is-visible {
+  display: grid;
+  gap: 12px;
+}
+
+.admin__plan-upsell p {
+  margin: 0;
+}
+
+.admin__plan-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin__save {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.admin__save-status {
+  font-size: 0.9rem;
+  color: #16a34a;
 }
 
 .admin__subtitle {
@@ -96,14 +179,14 @@ body {
 
 .admin__divider {
   height: 1px;
-  background: #e2e8f0;
+  background: color-mix(in srgb, var(--theme-primary) 35%, #e2e8f0);
   margin: 8px 0;
 }
 
 .admin__section-title {
   margin: 0;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--theme-primary);
 }
 
 .admin__note {
@@ -113,6 +196,20 @@ body {
 }
 
 .admin__documents {
+  display: grid;
+  gap: 12px;
+}
+
+.admin__document-group {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.admin__document-group-list {
   display: grid;
   gap: 12px;
 }
@@ -141,6 +238,28 @@ body {
   gap: 4px;
 }
 
+.admin__theme-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.admin__theme-controls select,
+.admin__theme-controls input[type="color"] {
+  height: 44px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid #cbd5f5;
+  font-size: 0.95rem;
+  background-color: #ffffff;
+}
+
+.admin__theme-controls input[type="color"] {
+  padding: 4px;
+  width: 80px;
+}
+
 .admin__file-status {
   margin: 0;
   font-size: 0.85rem;
@@ -152,6 +271,19 @@ body {
   flex-direction: column;
   gap: 8px;
   margin-bottom: 20px;
+}
+
+.documents__section {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.documents__section-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0f172a;
 }
 
 .documents__subtitle {
@@ -282,7 +414,7 @@ button {
   padding: 12px 20px;
   border-radius: 12px;
   border: none;
-  background: #4f46e5;
+  background: var(--theme-primary);
   color: #ffffff;
   font-weight: 600;
   cursor: pointer;
@@ -290,13 +422,45 @@ button {
 
 button:focus,
 button:hover {
-  background: #4338ca;
+  background: var(--theme-primary-hover);
 }
 
 .chat__hint {
   margin: 0;
   font-size: 0.9rem;
   color: #64748b;
+}
+
+.chat__count {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.chat__count.is-hidden {
+  display: none;
+}
+
+.chat__count.is-warning {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.chat__model-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.chat__model-detail {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.chat__model-actions button[disabled] {
+  background: #94a3b8;
+  cursor: not-allowed;
 }
 
 @media (max-width: 720px) {
