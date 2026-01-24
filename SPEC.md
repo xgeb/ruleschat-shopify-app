@@ -1,4 +1,4 @@
-RulesChat — Product & Technical SPEC (v0.3)
+RulesChat — Product & Technical SPEC (v0.4)
 1. Product Overview
 
 RulesChat is an embeddable, in-browser rules assistant for organizations with complex rulebooks (sports leagues, associations, events, compliance-heavy groups).
@@ -50,7 +50,102 @@ LLM handles conversation + reasoning
 
 Retrieval limits context strictly to document chunks
 
-No global training. No cross-site learning.
+No global training
+
+No cross-site learning
+
+3A. Persistence and Configuration Storage (Interface-First)
+Current State
+
+Admin changes currently apply only to the active browser session.
+
+This is acceptable for prototyping but not for real admin usage.
+
+Goal
+
+Admin configuration must persist across page reloads and browser restarts.
+
+Persistence must be implemented in a way that allows backend storage to replace local storage later without major refactoring.
+
+Configuration Store Contract
+
+All widget and admin code must interact with persistence only through this interface:
+
+loadConfig(): Config
+
+saveConfig(config: Config): void
+
+resetConfig(): void
+
+Rules:
+
+Widget code must not directly call localStorage.
+
+Widget code must not directly call backend APIs.
+
+The store implementation is the only layer that changes between local and backend persistence.
+
+Milestone 3 Persistence (Prototype)
+
+Use browser localStorage
+
+Storage key: ruleschat:config:v1
+
+Persist the following admin-controlled fields:
+
+Widget title
+
+Eyebrow text
+
+Notice text
+
+Theme color
+
+Subscription tier (Starter / Pro / Power)
+
+Documents array:
+
+Display name
+
+PDF URL
+
+Section name
+
+Do NOT persist:
+
+User chat messages
+
+Uploaded file objects
+
+Derived document chunks (recomputed on load if needed)
+
+Admin Save Behavior
+
+Admin UI must include a visible “Save settings” button
+
+Clicking save:
+
+Writes config via saveConfig
+
+Shows a lightweight confirmation state (“Saved”)
+
+Auto-save is optional, but manual save must exist and be obvious
+
+Milestone 4 Persistence (Production)
+
+Replace localStorage with backend persistence
+
+Configuration stored per Shopify shop
+
+Backend becomes source of truth for:
+
+Admin configuration
+
+Subscription tier
+
+Document limits
+
+Authentication handled via Shopify admin auth (details TBD)
 
 4. Admin Panel (Configuration UI)
 4.1 Admin Scope
@@ -69,6 +164,8 @@ Sections
 
 Subscription tier (UI-only for now)
 
+Saved configuration state
+
 4.2 Admin Header Settings
 
 Editable fields:
@@ -79,7 +176,7 @@ Eyebrow Text
 
 Notice Text
 
-Changes apply immediately in-session.
+Changes apply immediately in-session, but must be saved to persist.
 
 5. Document System
 5.1 Documents
@@ -102,7 +199,7 @@ No limit on number of sections
 
 A section may contain:
 
-1 document
+One document
 
 Many documents
 
@@ -138,7 +235,7 @@ Increases document cap immediately
 
 Reveals new empty document slots
 
-⚠️ No payments or persistence yet (frontend simulation only)
+⚠️ No payments yet. Persistence is local only in Milestone 3.
 
 7. Admin Upsell UI
 
@@ -160,7 +257,7 @@ Immediate
 
 No reload
 
-No backend
+No backend (Milestone 3)
 
 8. Theme Customization
 8.1 Color Selection
@@ -169,7 +266,7 @@ Admin can choose a theme color via:
 
 RGB / color wheel picker
 
-Presets supported implicitly:
+Supported color ranges include:
 
 Red
 
@@ -205,7 +302,7 @@ Accent borders
 
 Chat UI emphasis
 
-Stored in config object.
+Stored in configuration.
 
 9. User Chat Interface
 9.1 Chat Input
@@ -216,7 +313,7 @@ Real-time character counter: X / 250
 
 9.2 Character Limit Feedback
 
-When user hits 250 characters:
+When user reaches 250 characters:
 
 Show inline red warning text:
 
@@ -226,10 +323,10 @@ Warning disappears automatically when text is shortened
 
 Accessible via aria-live
 
-No modals. No alerts.
+No modals or alerts
 
 10. Chat Behavior
-Answer Flow:
+Answer Flow
 
 User submits question
 
@@ -245,7 +342,7 @@ Document name(s)
 
 Page reference(s) when available
 
-Failure Case:
+Failure Case
 
 If no relevant content is found:
 
@@ -253,21 +350,23 @@ Show escalation message:
 
 “I cannot find this in the posted documents.”
 
-Optional future escalation hook (email, form, etc.)
+Optional future escalation hooks (email, form, etc.)
 
 11. Non-Goals (Explicitly Out of Scope)
 
-Payments
+Payments (Milestone 3)
 
 User accounts
 
-Backend ingestion
+Backend ingestion (Milestone 3)
 
 Server-side embeddings
 
 Cross-site learning
 
 PDF uploads for public users
+
+Backend persistence is out of scope for Milestone 3, but required for Milestone 4.
 
 12. Milestones
 Milestone 1
@@ -298,9 +397,27 @@ Sections
 
 Upsell flows
 
+Config persistence via localStorage
+
+Save settings control
+
 UX polish
 
+Milestone 4 (Next)
+
+Backend persistence via config-store interface
+
+Shopify app integration
+
+Per-shop configuration
+
+Server-authoritative plan enforcement
+
+Billing groundwork
+
 13. Success Criteria
+
+Admin settings persist across browser sessions
 
 Admin can configure up to 75 documents with sections
 
