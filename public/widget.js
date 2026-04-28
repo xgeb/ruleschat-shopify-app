@@ -1,7 +1,6 @@
 import { CreateMLCEngine } from 'https://esm.sh/@mlc-ai/web-llm@0.2.52';
-
-import { loadConfig, saveConfig } from './config-store.js';
-
+import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/build/pdf.min.mjs';
+import { loadConfig, resetConfig, saveConfig } from './config-store.js';
 import { chunkText, retrieveRelevantChunks } from './widget-utils.js';
 
 const config = {
@@ -42,10 +41,9 @@ const planUpsellNode = document.querySelector('[data-plan-upsell]');
 const upgradeProButton = document.querySelector('[data-upgrade-pro]');
 const upgradePowerButton = document.querySelector('[data-upgrade-power]');
 const charCountNode = document.querySelector('[data-char-count]');
-
 const saveSettingsButton = document.querySelector('[data-save-settings]');
 const saveStatusNode = document.querySelector('[data-save-status]');
-
+const resetSettingsButton = document.querySelector('[data-reset-settings]');
 
 const THEME_PRESETS = new Map([
   ['Red', '#ef4444'],
@@ -71,20 +69,21 @@ const PLAN_DEFINITIONS = {
 const MODEL_NAME = 'Llama-3.2-1B-Instruct-q4f16_1';
 const MAX_CONTEXT_CHUNKS = 3;
 const MAX_INPUT_LENGTH = 250;
-
 const DEFAULT_PLAN_TIER = 'starter';
-
 
 let llmEngine = null;
 let modelLoading = false;
 let modelReady = false;
 let modelError = null;
 
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/build/pdf.worker.min.mjs';
+
 const ensurePdfLib = () => {
-  if (!window.pdfjsLib) {
+  if (!pdfjsLib?.getDocument) {
     throw new Error('PDF library not available.');
   }
-  return window.pdfjsLib;
+  return pdfjsLib;
 };
 
 const extractPdfText = async (file) => {
@@ -166,19 +165,11 @@ const setComposerEnabled = (enabled) => {
 const isWebGpuAvailable = () => Boolean(navigator.gpu);
 
 const createEmptyDocument = () => ({
-
-  title: "",
-  url: "",
-  file: null,
-  chunks: [],
-  section: "",
-
   title: '',
   url: '',
   file: null,
   chunks: [],
   section: '',
-
 });
 
 const getDocumentUsageCount = () =>
@@ -231,6 +222,32 @@ const updatePlanUI = () => {
   }
 };
 
+const updateAdminInputs = () => {
+  const titleInput = document.querySelector('#admin-title-input');
+  const eyebrowInput = document.querySelector('#admin-eyebrow-input');
+  const noticeInput = document.querySelector('#admin-notice-input');
+  const themeInput = document.querySelector('#admin-theme-input');
+  const presetInput = document.querySelector('#admin-theme-preset');
+
+  if (titleInput) {
+    titleInput.value = config.widgetTitle;
+  }
+  if (eyebrowInput) {
+    eyebrowInput.value = config.widgetEyebrow;
+  }
+  if (noticeInput) {
+    noticeInput.value = config.widgetNotice;
+  }
+  if (themeInput) {
+    themeInput.value = config.themeColor;
+  }
+  if (presetInput) {
+    const match = Array.from(THEME_PRESETS.values()).find(
+      (preset) => preset.toLowerCase() === config.themeColor.toLowerCase()
+    );
+    presetInput.value = match ?? 'custom';
+  }
+};
 
 const applyConfig = (nextConfig) => {
   if (!nextConfig) {
@@ -258,7 +275,8 @@ const applyConfig = (nextConfig) => {
     config.documents = nextConfig.documents.map((doc) => ({
       ...createEmptyDocument(),
       ...doc,
-      chunks: doc?.chunks ?? [],
+      file: null,
+      chunks: [],
     }));
   }
 
@@ -273,6 +291,7 @@ const applyConfig = (nextConfig) => {
   }
   rootStyle.setProperty('--theme-primary', config.themeColor);
   updatePlanUI();
+  updateAdminInputs();
 };
 
 const buildConfigPayload = () => ({
@@ -284,7 +303,7 @@ const buildConfigPayload = () => ({
   documents: config.documents.map((doc) => ({
     title: doc.title,
     url: doc.url,
-    file: doc.file ? { name: doc.file.name } : null,
+    file: null,
     chunks: [],
     section: doc.section,
   })),
@@ -302,7 +321,6 @@ const showSaveStatus = (message) => {
     saveStatusNode.textContent = '';
   }, 2000);
 };
-
 
 const updateCharCount = () => {
   if (!charCountNode || !input) {
@@ -521,6 +539,8 @@ const renderAdminDocuments = () => {
       sectionInput.addEventListener('input', (event) => {
         doc.section = event.target.value;
         renderDocuments();
+      });
+      sectionInput.addEventListener('change', () => {
         renderAdminDocuments();
       });
       sectionField.append(sectionLabel, sectionInput);
@@ -763,7 +783,7 @@ updatePlanUI();
 renderDocuments();
 renderAdminDocuments();
 updateCharCount();
-
+updateAdminInputs();
 
 const storedConfig = loadConfig();
 if (storedConfig) {
@@ -771,7 +791,6 @@ if (storedConfig) {
   renderDocuments();
   renderAdminDocuments();
 }
-
 
 if (input) {
   input.addEventListener('input', updateCharCount);
@@ -808,7 +827,6 @@ if (upgradePowerButton) {
   });
 }
 
-
 if (saveSettingsButton) {
   saveSettingsButton.addEventListener('click', () => {
     saveConfig(buildConfigPayload());
@@ -816,6 +834,12 @@ if (saveSettingsButton) {
   });
 }
 
+if (resetSettingsButton) {
+  resetSettingsButton.addEventListener('click', () => {
+    resetConfig();
+    window.location.reload();
+  });
+}
 
 if (form) {
   form.addEventListener('submit', async (event) => {

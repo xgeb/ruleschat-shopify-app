@@ -61,12 +61,13 @@
               </div>
             </div>
           </section>
-
           <div class="admin__save">
             <button type="button" data-save-settings>Save settings</button>
+            <button type="button" class="admin__reset" data-reset-settings>
+              Reset
+            </button>
             <span class="admin__save-status" data-save-status aria-live="polite"></span>
           </div>
-
           <form class="admin__form" aria-label="Widget admin settings">
             <label class="admin__label" for="admin-title-input">Widget title</label>
             <input
@@ -195,12 +196,6 @@
       </section>
     </main>
 
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js"
-      integrity="sha512-7n9OCB1rQ5Jf8B5xYu88f9f3+oSSKckbD0k22I1Rt9mJjT7EHq70GDoaX1ut1tr4QGhhXyuP6s4r+zdSdaHKeQ=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    ></script>
     <script type="module" src="./widget.js"></script>
   </body>
 </html>

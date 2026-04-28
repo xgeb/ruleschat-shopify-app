@@ -58,6 +58,11 @@ const run = async () => {
     'Expected save settings button to be present.'
   );
 
+  assert.ok(
+    html.includes('data-reset-settings'),
+    'Expected reset settings button to be present.'
+  );
+
   const configStore = await fs.readFile(
     path.join(projectRoot, 'public', 'config-store.js'),
     'utf8'
@@ -65,6 +70,16 @@ const run = async () => {
   assert.ok(
     configStore.includes('ruleschat:config:v1'),
     'Expected localStorage config key to be defined.'
+  );
+
+  assert.ok(
+    widgetScript.includes('cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/build/pdf.min.mjs'),
+    'Expected widget to import PDF.js from jsDelivr.'
+  );
+
+  assert.ok(
+    widgetScript.includes('pdf.worker.min.mjs'),
+    'Expected widget to configure the PDF.js worker URL.'
   );
 
   const chunked = chunkText('one two three four five six seven eight nine ten', {

@@ -159,6 +159,16 @@ body {
   margin-bottom: 20px;
 }
 
+.admin__reset {
+  background: #e2e8f0;
+  color: #1f2937;
+}
+
+.admin__reset:focus,
+.admin__reset:hover {
+  background: #cbd5f5;
+}
+
 .admin__save-status {
   font-size: 0.9rem;
   color: #16a34a;
