@@ -1,4 +1,7 @@
 import { CreateMLCEngine } from 'https://esm.sh/@mlc-ai/web-llm@0.2.52';
+
+import { loadConfig, saveConfig } from './config-store.js';
+
 import { chunkText, retrieveRelevantChunks } from './widget-utils.js';
 
 const config = {
@@ -40,6 +43,10 @@ const upgradeProButton = document.querySelector('[data-upgrade-pro]');
 const upgradePowerButton = document.querySelector('[data-upgrade-power]');
 const charCountNode = document.querySelector('[data-char-count]');
 
+const saveSettingsButton = document.querySelector('[data-save-settings]');
+const saveStatusNode = document.querySelector('[data-save-status]');
+
+
 const THEME_PRESETS = new Map([
   ['Red', '#ef4444'],
   ['Orange', '#f97316'],
@@ -64,6 +71,9 @@ const PLAN_DEFINITIONS = {
 const MODEL_NAME = 'Llama-3.2-1B-Instruct-q4f16_1';
 const MAX_CONTEXT_CHUNKS = 3;
 const MAX_INPUT_LENGTH = 250;
+
+const DEFAULT_PLAN_TIER = 'starter';
+
 
 let llmEngine = null;
 let modelLoading = false;
@@ -156,11 +166,19 @@ const setComposerEnabled = (enabled) => {
 const isWebGpuAvailable = () => Boolean(navigator.gpu);
 
 const createEmptyDocument = () => ({
+
   title: "",
   url: "",
   file: null,
   chunks: [],
   section: "",
+
+  title: '',
+  url: '',
+  file: null,
+  chunks: [],
+  section: '',
+
 });
 
 const getDocumentUsageCount = () =>
@@ -212,6 +230,79 @@ const updatePlanUI = () => {
     planUpsellNode.classList.toggle('is-visible', isAtLimit);
   }
 };
+
+
+const applyConfig = (nextConfig) => {
+  if (!nextConfig) {
+    return;
+  }
+
+  if (typeof nextConfig.widgetTitle === 'string') {
+    config.widgetTitle = nextConfig.widgetTitle;
+  }
+  if (typeof nextConfig.widgetEyebrow === 'string') {
+    config.widgetEyebrow = nextConfig.widgetEyebrow;
+  }
+  if (typeof nextConfig.widgetNotice === 'string') {
+    config.widgetNotice = nextConfig.widgetNotice;
+  }
+  if (typeof nextConfig.themeColor === 'string') {
+    config.themeColor = nextConfig.themeColor;
+  }
+  if (typeof nextConfig.planTier === 'string') {
+    config.planTier = nextConfig.planTier;
+  } else {
+    config.planTier = DEFAULT_PLAN_TIER;
+  }
+  if (Array.isArray(nextConfig.documents)) {
+    config.documents = nextConfig.documents.map((doc) => ({
+      ...createEmptyDocument(),
+      ...doc,
+      chunks: doc?.chunks ?? [],
+    }));
+  }
+
+  if (titleNode) {
+    titleNode.textContent = config.widgetTitle;
+  }
+  if (eyebrowNode) {
+    eyebrowNode.textContent = config.widgetEyebrow;
+  }
+  if (noticeNode) {
+    noticeNode.textContent = config.widgetNotice;
+  }
+  rootStyle.setProperty('--theme-primary', config.themeColor);
+  updatePlanUI();
+};
+
+const buildConfigPayload = () => ({
+  widgetTitle: config.widgetTitle,
+  widgetEyebrow: config.widgetEyebrow,
+  widgetNotice: config.widgetNotice,
+  themeColor: config.themeColor,
+  planTier: config.planTier,
+  documents: config.documents.map((doc) => ({
+    title: doc.title,
+    url: doc.url,
+    file: doc.file ? { name: doc.file.name } : null,
+    chunks: [],
+    section: doc.section,
+  })),
+});
+
+const showSaveStatus = (message) => {
+  if (!saveStatusNode) {
+    return;
+  }
+  saveStatusNode.textContent = message;
+  if (!message) {
+    return;
+  }
+  window.setTimeout(() => {
+    saveStatusNode.textContent = '';
+  }, 2000);
+};
+
 
 const updateCharCount = () => {
   if (!charCountNode || !input) {
@@ -673,6 +764,15 @@ renderDocuments();
 renderAdminDocuments();
 updateCharCount();
 
+
+const storedConfig = loadConfig();
+if (storedConfig) {
+  applyConfig(storedConfig);
+  renderDocuments();
+  renderAdminDocuments();
+}
+
+
 if (input) {
   input.addEventListener('input', updateCharCount);
 }
@@ -707,6 +807,15 @@ if (upgradePowerButton) {
     renderDocuments();
   });
 }
+
+
+if (saveSettingsButton) {
+  saveSettingsButton.addEventListener('click', () => {
+    saveConfig(buildConfigPayload());
+    showSaveStatus('Saved');
+  });
+}
+
 
 if (form) {
   form.addEventListener('submit', async (event) => {
