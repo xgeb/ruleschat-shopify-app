@@ -151,6 +151,7 @@ body {
   flex-wrap: wrap;
 }
 
+
 .admin__save {
   display: flex;
   align-items: center;
@@ -172,6 +173,7 @@ body {
   font-size: 0.9rem;
   color: #16a34a;
 }
+
 
 .admin__subtitle {
   margin: 0;

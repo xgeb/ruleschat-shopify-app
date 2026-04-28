@@ -1,203 +1,430 @@
-# Project Specification — RulesChat (In-Browser LLM Edition)
+RulesChat — Product & Technical SPEC (v0.4)
+1. Product Overview
 
-## 1. Project identity
+RulesChat is an embeddable, in-browser rules assistant for organizations with complex rulebooks (sports leagues, associations, events, compliance-heavy groups).
 
-Project name:
-RulesChat — In-Browser League Rules Assistant
+Runs entirely client-side
 
-One-sentence description:
-A browser-based chatbot that answers league rule questions conversationally using only admin-provided PDF documents.
+Uses a tiny in-browser LLM for conversational UX
 
-Primary user:
-Fighters, referees, and league members checking rules for weapons, materials, safety, and engagement.
+Grounds answers only in admin-provided documents
 
-Primary problem solved:
-Users get fast, human-like answers grounded strictly in official league documents without waiting for staff responses.
+Optimized for clarity, speed, and trust, not raw intelligence
 
-Non-goals:
-- No user accounts or login
-- No permanent chat history
-- No server-side model training
-- No external paid LLM APIs
-- No PDF uploads by public users
+The goal is human-like Q&A, not Ctrl+F search.
 
----
+2. Core Design Principles
 
-## 2. Source material and permissions
+No server dependency (initially)
 
-Source material:
-Admin-uploaded or admin-linked PDF rule documents.
+No paid APIs
 
-Permissions:
-Admin confirms they have rights to publish and reference uploaded documents.
+Explainable answers
 
-Reskinning:
-No reskinning of third-party codebases. Original implementation only.
+Admin-controlled knowledge
 
-Legal constraints:
-- No collection of personal data
-- No analytics tied to identity
-- Accessibility compliance (WCAG-aligned)
+Upgradeable monetization via limits, not features
 
----
+Good UX over perfect answers
 
-## 3. Target platform and technology
+3. Architecture Overview
+Runtime Model
 
-Platform:
-Shopify storefront extension (initially tested as standalone web widget).
+In-browser tiny LLM (WebGPU-backed when available)
 
-Execution environment:
-Client-side browser only.
+Model loads on demand
 
-Technology stack:
-- HTML / CSS / JavaScript
-- WebLLM (open-source, in-browser language model runtime)
-- WebGPU (for local inference)
-- PDF.js (text extraction)
-- Custom semantic retrieval (embedding + similarity)
+One model instance per site (per admin)
 
-No backend servers required for core functionality.
+Knowledge Flow
 
----
+Admin defines documents
 
-## 4. Functional requirements
+Documents are chunked locally
 
-1. Admin can configure:
-   - Widget title
-   - Eyebrow text
-   - Notice text
-   - Up to 8 PDF documents
+Chunks are embedded / indexed client-side
 
-2. Admin can:
-   - Upload PDF files locally (browser session only)
-   - Or provide hosted PDF links for download
+User questions:
 
-3. System extracts text from PDFs and:
-   - Splits text into overlapping semantic chunks
-   - Stores chunks in memory for the session
+LLM handles conversation + reasoning
 
-4. When a user asks a question:
-   - Relevant chunks are retrieved using semantic similarity
-   - Retrieved excerpts are passed into a local language model
-   - The model generates a conversational answer
-   - The answer cites document title and page numbers
+Retrieval limits context strictly to document chunks
 
-5. If no relevant content is found:
-   - The assistant clearly states it does not know
-   - Offers escalation to a human (placeholder action)
+No global training
 
-6. Chat sessions:
-   - Exist only in the current browser session
-   - Reset on page reload
+No cross-site learning
 
----
+3A. Persistence and Configuration Storage (Interface-First)
+Current State
 
-## 5. Failure states and messaging
+Admin changes currently apply only to the active browser session.
 
-- WebGPU unavailable:
-  Show a friendly message explaining the device does not support local chat.
+This is acceptable for prototyping but not for real admin usage.
 
-- Model loading failure:
-  Display retry option with progress indicator.
+Goal
 
-- PDF extraction failure:
-  Show admin-only error with clear explanation.
+Admin configuration must persist across page reloads and browser restarts.
 
-- No answer found:
-  Provide escalation option.
+Persistence must be implemented in a way that allows backend storage to replace local storage later without major refactoring.
 
----
+Configuration Store Contract
 
-## 6. Data model and storage
+All widget and admin code must interact with persistence only through this interface:
 
-All data is ephemeral and client-side only.
+loadConfig(): Config
 
-Entities:
-- Document
-  - title
-  - url (optional)
-  - extracted text
-  - semantic chunks
+saveConfig(config: Config): void
 
-- ChatMessage
-  - role (user / assistant)
-  - content
+resetConfig(): void
 
-No persistent storage.
-No cookies.
-No tracking.
+Rules:
 
----
+Widget code must not directly call localStorage.
 
-## 7. Accessibility requirements
+Widget code must not directly call backend APIs.
 
-- Keyboard navigation for all inputs
-- Proper ARIA labels
-- High-contrast readable text
-- Screen-reader friendly chat output
+The store implementation is the only layer that changes between local and backend persistence.
 
----
+Milestone 3 Persistence (Prototype)
 
-## 8. Quality bar (definition of done)
+Use browser localStorage
 
-Functional:
-- Answers reference only uploaded documents
-- Conversational tone
-- Multi-turn chat works in a session
+Storage key: ruleschat:config:v1
 
-Performance:
-- Initial model load under reasonable time on modern desktop
-- No blocking UI during inference
+Persist the following admin-controlled fields:
 
-Security:
-- No secrets
-- No external network calls for inference
-- Input sanitization for display
+Widget title
 
----
+Eyebrow text
 
-## 9. Build, run, and test instructions
+Notice text
 
-Install:
-npm install
+Theme color
 
-Run locally:
-npm run dev
+Subscription tier (Starter / Pro / Power)
 
-Test:
-npm test
+Documents array:
 
-Build:
-npm run build
+Display name
 
----
+PDF URL
 
-## 10. Milestones and benchmarks
+Section name
 
-Milestone 1:
-Existing widget UI + admin document ingestion
+Do NOT persist:
 
-Milestone 2:
-Semantic retrieval (embedding-based)
+User chat messages
 
-Milestone 3:
-In-browser language model integration (WebLLM)
+Uploaded file objects
 
-Milestone 4:
-Shopify extension packaging + fallback handling
+Derived document chunks (recomputed on load if needed)
 
----
+Admin Save Behavior
 
-## 11. Agentic execution constraints
+Admin UI must include a visible “Save settings” button
 
-- Do not add paid APIs
-- Do not introduce a backend server
-- Always keep inference client-side
-- Ask before adding new dependencies
-- Provide a change log per milestone
+Clicking save:
 
----
+Writes config via saveConfig
 
-## 12. Definition of complete deliverable
+Shows a lightweight confirmation state (“Saved”)
 
-A Shopify-compatible widget that provides conversational, document-grounded rule answers using a fully in-browser, open-source language model, requiring no servers, no API keys, and no ongoing inference costs.
+Auto-save is optional, but manual save must exist and be obvious
+
+Milestone 4 Persistence (Production)
+
+Replace localStorage with backend persistence
+
+Configuration stored per Shopify shop
+
+Backend becomes source of truth for:
+
+Admin configuration
+
+Subscription tier
+
+Document limits
+
+Authentication handled via Shopify admin auth (details TBD)
+
+4. Admin Panel (Configuration UI)
+4.1 Admin Scope
+
+Admin UI is not visible to public users
+
+Used to configure:
+
+Widget text
+
+Theme
+
+Documents
+
+Sections
+
+Subscription tier (UI-only for now)
+
+Saved configuration state
+
+4.2 Admin Header Settings
+
+Editable fields:
+
+Widget Title
+
+Eyebrow Text
+
+Notice Text
+
+Changes apply immediately in-session, but must be saved to persist.
+
+5. Document System
+5.1 Documents
+
+Each document has:
+
+Display Name
+
+PDF URL (hosted)
+
+Section Name (free text)
+
+Internal chunk store (client-side)
+
+5.2 Sections
+
+Sections are admin-defined strings
+
+No limit on number of sections
+
+A section may contain:
+
+One document
+
+Many documents
+
+Documents may all exist in a single section if desired
+
+Sections affect:
+
+Admin organization
+
+User-facing document grouping
+
+6. Subscription Tiers (UI-only)
+6.1 Plans
+Plan	Price	Max Documents
+Starter	$9/mo	8 documents
+Pro	$15/mo	28 documents
+Power	$20/mo	75 documents
+6.2 Behavior
+
+Starter is default
+
+When document limit is reached:
+
+“Add document” is disabled
+
+Upsell UI appears
+
+Clicking upgrade:
+
+Updates plan locally
+
+Increases document cap immediately
+
+Reveals new empty document slots
+
+⚠️ No payments yet. Persistence is local only in Milestone 3.
+
+7. Admin Upsell UI
+
+Displayed when at document limit:
+
+Current plan name
+
+Current usage (e.g. 8 / 8)
+
+Upgrade buttons:
+
+Upgrade to Pro ($15 / 28 docs)
+
+Upgrade to Power ($20 / 75 docs)
+
+Upgrade behavior:
+
+Immediate
+
+No reload
+
+No backend (Milestone 3)
+
+8. Theme Customization
+8.1 Color Selection
+
+Admin can choose a theme color via:
+
+RGB / color wheel picker
+
+Supported color ranges include:
+
+Red
+
+Orange
+
+Yellow
+
+Yellow-Green
+
+Green
+
+Green-Blue
+
+Blue
+
+Blue-Purple
+
+Purple
+
+Red-Purple
+
+Black
+
+Gray
+
+Theme color affects:
+
+Buttons
+
+Highlights
+
+Accent borders
+
+Chat UI emphasis
+
+Stored in configuration.
+
+9. User Chat Interface
+9.1 Chat Input
+
+Max length: 250 characters
+
+Real-time character counter: X / 250
+
+9.2 Character Limit Feedback
+
+When user reaches 250 characters:
+
+Show inline red warning text:
+
+“Character limit reached. Please reword your question.”
+
+Warning disappears automatically when text is shortened
+
+Accessible via aria-live
+
+No modals or alerts
+
+10. Chat Behavior
+Answer Flow
+
+User submits question
+
+Relevant document chunks are retrieved
+
+LLM generates response only from retrieved content
+
+Response includes:
+
+Answer text
+
+Document name(s)
+
+Page reference(s) when available
+
+Failure Case
+
+If no relevant content is found:
+
+Show escalation message:
+
+“I cannot find this in the posted documents.”
+
+Optional future escalation hooks (email, form, etc.)
+
+11. Non-Goals (Explicitly Out of Scope)
+
+Payments (Milestone 3)
+
+User accounts
+
+Backend ingestion (Milestone 3)
+
+Server-side embeddings
+
+Cross-site learning
+
+PDF uploads for public users
+
+Backend persistence is out of scope for Milestone 3, but required for Milestone 4.
+
+12. Milestones
+Milestone 1
+
+Static widget scaffold
+
+Basic admin UI
+
+Chat UI skeleton
+
+Milestone 2
+
+Document ingestion (prototype)
+
+Chunking + retrieval
+
+Tests for chunking & retrieval
+
+Milestone 3 (Current)
+
+In-browser LLM integration
+
+Admin theming
+
+Subscription tiers (UI-only)
+
+Sections
+
+Upsell flows
+
+Config persistence via localStorage
+
+Save settings control
+
+UX polish
+
+Milestone 4 (Next)
+
+Backend persistence via config-store interface
+
+Shopify app integration
+
+Per-shop configuration
+
+Server-authoritative plan enforcement
+
+Billing groundwork
+
+13. Success Criteria
+
+Admin settings persist across browser sessions
+
+Admin can configure up to 75 documents with sections
+
+User experience feels conversational, not search-like
+
+No external API costs
+
+Clear upgrade path
+
+Clean UX under constraints
